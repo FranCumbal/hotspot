@@ -34,7 +34,9 @@ $(endif)
 <div id="wifi"></div>
 <input autocomplete="on" name="username" placeholder="Username" type="text" value="$(username)" size="15" />
 <input autocomplete="off" name="password" placeholder="Password" type="password" label="false" size="15" />
-<input name="submit" type="submit" value=" " />
+
+<input type="submit" value=" " />
+
 <img class="logo" src="bg.png" />
 <div class='footer'>
 <p>$(if trial == 'yes')Free trial available, <a href="$(link-login-only)?dst=$(link-orig-esc)&amp;username=T-$(mac-esc)">click here</a>.$(endif)</p>
@@ -44,9 +46,6 @@ $(endif)
 </p>
 </div>
 </form>
-
-<script type="text/javascript">
-</script>
 
 <div id="video-screen">
   <video id="promo-video" playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback">
@@ -58,10 +57,21 @@ $(endif)
   </div>
 </div>
 
+<div id="connect-screen">
+  <div class="connect-box">
+    <div class="spinner"></div>
+    <h2>Conectando a Internet...</h2>
+    <p>Validando credenciales, por favor espera.</p>
+  </div>
+</div>
+
+<script type="text/javascript">
+</script>
+
 <script type="text/javascript">
   document.oncontextmenu = function(){return false;}
 
-  // ── 1. CONFIGURACIÓN DEL VIDEO ──
+  // ── LÓGICA DE VIDEO ──
   const VIDEO_SERVER = 'http://192.168.2.240:8080';
   const TOTAL_VIDEOS = 21;
   const num = Math.floor(Math.random() * TOTAL_VIDEOS) + 1;
@@ -70,30 +80,29 @@ $(endif)
   const videoEl = document.getElementById('promo-video');
   videoEl.load();
 
-  // ── 2. INTERCEPTAR EL CLIC EN EL BOTÓN "ENTRAR" ──
+  // Interceptar el envío del formulario para mostrar el video primero
   const loginForm = document.getElementById('main-login-form');
   loginForm.addEventListener('submit', function(e) {
-    e.preventDefault(); // Pausa el envío del formulario al router
+    e.preventDefault(); 
     
-    // Ocultar formulario de login
+    // Ocultar formulario de forma segura
     document.querySelector('.vertical-form').style.display = 'none';
-    document.querySelector('.logo').style.display = 'none';
+    const imgLogo = document.querySelector('.logo');
+    if(imgLogo) imgLogo.style.display = 'none';
     
-    // Mostrar pantalla de video
+    // Mostrar video y reproducir
     document.getElementById('video-screen').classList.add('visible');
-    
-    // Reproducir el video
     videoEl.play();
   });
 
-  // ── 3. BLOQUEAR TECLADO MIENTRAS SE VE EL VIDEO ──
+  // Bloqueo de teclado
   document.addEventListener('keydown', e => {
      if(document.getElementById('video-screen').classList.contains('visible')) {
          e.preventDefault();
      }
   });
 
-  // ── 4. BARRA DE PROGRESO ──
+  // Actualización de tiempo
   function formatTime(s) {
     const m = Math.floor(s / 60);
     const ss = Math.floor(s % 60).toString().padStart(2, '0');
@@ -107,23 +116,27 @@ $(endif)
     document.getElementById('time-label').textContent = formatTime(videoEl.currentTime) + ' / ' + formatTime(videoEl.duration);
   });
 
-  // ── 5. EVENTO FINAL: DAR INTERNET CUANDO EL VIDEO TERMINE ──
-  // ── 5. EVENTO FINAL: DAR INTERNET CUANDO EL VIDEO TERMINE ──
+  // Evento al terminar el video
   function finalizarYConectar() {
-    // Leemos la variable de MikroTik como si fuera un texto de JavaScript
+    // 1. Quitar el video y mostrar Inmediatamente el spinner de carga
+    document.getElementById('video-screen').classList.remove('visible');
+    document.getElementById('connect-screen').classList.add('visible');
+
+    // 2. Enviar la información al router usando javascript seguro
     var chapId = "$(chap-id)"; 
-    
     if (chapId !== "") {
-      doLogin(); // Función cifrada de MikroTik si usa CHAP
+      // Verificación extra de seguridad para MikroTik
+      if (typeof doLogin === 'function') {
+        doLogin(); 
+      }
     } else {
-      document.getElementById('main-login-form').submit(); // Envío normal si no hay CHAP
+      // Usamos el método absoluto del prototipo para ignorar cualquier conflicto de nombres en el formulario
+      HTMLFormElement.prototype.submit.call(document.getElementById('main-login-form'));
     }
   }
 
   videoEl.addEventListener('ended', finalizarYConectar);
-  // Si el video falla al cargar, igual le damos internet para no dejarlo bloqueado
   videoEl.addEventListener('error', finalizarYConectar); 
 </script>
-
 </body>
 </html>
