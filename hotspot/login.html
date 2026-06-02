@@ -7,10 +7,9 @@
 <meta http-equiv="expires" content="-1" />	
 <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
 <link rel="stylesheet" href="login.css" media="screen">
- 
-
 </head>
 <body class='login'>
+
 $(if chap-id)
 	<form name="sendin" action="$(link-login-only)" method="post">
 		<input type="hidden" name="username" />
@@ -21,20 +20,10 @@ $(if chap-id)
 	
 	<script type="text/javascript" src="/md5.js"></script>
 	<script type="text/javascript">
-	<!--
-	    function doLogin() {
-		document.sendin.username.value = document.login.username.value;
-		document.sendin.password.value = hexMD5('$(chap-id)' + document.login.password.value + '$(chap-challenge)');
-		document.sendin.submit();
-		return false;
-	    }
-	//-->
 	</script>
 $(endif)
 
-
-<form class="vertical-form" name="login" action="$(link-login-only)" method="post" background="#A03472"
-	$(if chap-id) onSubmit="return doLogin()" $(endif)>
+<form id="main-login-form" class="vertical-form" name="login" action="$(link-login-only)" method="post" background="#A03472">
 <input type="hidden" name="dst" value="$(link-orig)" />
 <input type="hidden" name="popup" value="true" />
 <div style="margin:0;padding:0;display:inline"></div>
@@ -57,12 +46,84 @@ $(endif)
 </form>
 
 <script type="text/javascript">
-<!--
-  document.login.username.focus();
-//-->
 </script>
+
+<div id="video-screen">
+  <video id="promo-video" playsinline disablePictureInPicture controlsList="nodownload nofullscreen noremoteplayback">
+    <source id="video-src" src="" type="video/mp4">
+  </video>
+  <div id="progress-bar">
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <span id="time-label">0:00 / 0:00</span>
+  </div>
+</div>
+
 <script type="text/javascript">
-document.oncontextmenu = function(){return false;}
+  document.oncontextmenu = function(){return false;}
+
+  // ── 1. CONFIGURACIÓN DEL VIDEO ──
+  const VIDEO_SERVER = 'http://192.168.2.240:8080';
+  const TOTAL_VIDEOS = 21;
+  const num = Math.floor(Math.random() * TOTAL_VIDEOS) + 1;
+  document.getElementById('video-src').src = VIDEO_SERVER + '/VIDEO' + num + '.mp4';
+  
+  const videoEl = document.getElementById('promo-video');
+  videoEl.load();
+
+  // ── 2. INTERCEPTAR EL CLIC EN EL BOTÓN "ENTRAR" ──
+  const loginForm = document.getElementById('main-login-form');
+  loginForm.addEventListener('submit', function(e) {
+    e.preventDefault(); // Pausa el envío del formulario al router
+    
+    // Ocultar formulario de login
+    document.querySelector('.vertical-form').style.display = 'none';
+    document.querySelector('.logo').style.display = 'none';
+    
+    // Mostrar pantalla de video
+    document.getElementById('video-screen').classList.add('visible');
+    
+    // Reproducir el video
+    videoEl.play();
+  });
+
+  // ── 3. BLOQUEAR TECLADO MIENTRAS SE VE EL VIDEO ──
+  document.addEventListener('keydown', e => {
+     if(document.getElementById('video-screen').classList.contains('visible')) {
+         e.preventDefault();
+     }
+  });
+
+  // ── 4. BARRA DE PROGRESO ──
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const ss = Math.floor(s % 60).toString().padStart(2, '0');
+    return m + ':' + ss;
+  }
+
+  videoEl.addEventListener('timeupdate', () => {
+    if (!videoEl.duration) return;
+    const pct = (videoEl.currentTime / videoEl.duration) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('time-label').textContent = formatTime(videoEl.currentTime) + ' / ' + formatTime(videoEl.duration);
+  });
+
+  // ── 5. EVENTO FINAL: DAR INTERNET CUANDO EL VIDEO TERMINE ──
+  // ── 5. EVENTO FINAL: DAR INTERNET CUANDO EL VIDEO TERMINE ──
+  function finalizarYConectar() {
+    // Leemos la variable de MikroTik como si fuera un texto de JavaScript
+    var chapId = "$(chap-id)"; 
+    
+    if (chapId !== "") {
+      doLogin(); // Función cifrada de MikroTik si usa CHAP
+    } else {
+      document.getElementById('main-login-form').submit(); // Envío normal si no hay CHAP
+    }
+  }
+
+  videoEl.addEventListener('ended', finalizarYConectar);
+  // Si el video falla al cargar, igual le damos internet para no dejarlo bloqueado
+  videoEl.addEventListener('error', finalizarYConectar); 
 </script>
+
 </body>
 </html>

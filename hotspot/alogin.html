@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-
+    
     body {
       background: #000;
       color: #fff;
@@ -20,79 +20,16 @@
       justify-content: center;
       overflow: hidden;
     }
-
-    /* ── VIDEO SCREEN ── */
-    #video-screen {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-    }
-
-    #promo-video {
-      width: 100%;
-      max-width: 960px;
-      max-height: 85vh;
-      outline: none;
-      background: #000;
-    }
-
-    /* Barra de progreso — solo informativa, sin saltar */
-    #progress-bar {
-      width: 100%;
-      max-width: 960px;
-      padding: 10px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    #progress-track {
-      flex: 1;
-      height: 5px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    #progress-fill {
-      height: 100%;
-      width: 0%;
-      background: #e63946;
-      border-radius: 3px;
-      transition: width 0.4s linear;
-    }
-    #time-label {
-      font-size: 12px;
-      color: rgba(255,255,255,0.45);
-      white-space: nowrap;
-    }
-
-    /* Bloquear clic derecho y controles del video */
-    #video-screen::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: 11;   /* capa transparente encima del video para bloquear clic */
-      cursor: default;
-    }
-    /* Pero el video en sí debe seguir siendo visible */
-    #promo-video { position: relative; z-index: 12; pointer-events: none; }
-    #progress-bar { position: relative; z-index: 12; }
-
-    /* ── CONNECTING SCREEN ── */
+    
     #connect-screen {
-      display: none;
+      display: flex;
       flex-direction: column;
       align-items: center;
       gap: 24px;
       text-align: center;
       padding: 40px;
     }
-    #connect-screen.visible { display: flex; }
-
+    
     .spinner {
       width: 60px; height: 60px;
       border: 5px solid rgba(255,255,255,0.1);
@@ -100,85 +37,32 @@
       border-radius: 50%;
       animation: spin 0.9s linear infinite;
     }
+    
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    #connect-screen h2 { font-size: 22px; font-weight: 600; }
-    #connect-screen p  { font-size: 13px; color: rgba(255,255,255,0.45); }
+    
+    h2 { font-size: 22px; font-weight: 600; }
+    p  { font-size: 13px; color: rgba(255,255,255,0.45); }
   </style>
 </head>
 <body>
 
-  <!-- ① PANTALLA DE VIDEO (obligatorio, no se puede saltar) -->
-  <div id="video-screen">
-    <video id="promo-video" autoplay playsinline
-           disablePictureInPicture
-           controlsList="nodownload nofullscreen noremoteplayback">
-      <source id="video-src" src="" type="video/mp4">
-    </video>
-    <div id="progress-bar">
-      <div id="progress-track"><div id="progress-fill"></div></div>
-      <span id="time-label">0:00 / 0:00</span>
-    </div>
-  </div>
-
-  <!-- ② PANTALLA DE CONEXIÓN (aparece al terminar el video) -->
   <div id="connect-screen">
     <div class="spinner"></div>
-    <h2>Conectando a Internet…</h2>
-    <p>Serás redirigido en un momento</p>
+    <h2>¡Conexión Exitosa!</h2>
+    <p>Ya tienes acceso a Internet. Serás redirigido en un momento...</p>
   </div>
 
   <script>
-    // ── CONFIGURACIÓN ──────────────────────────────
-    const VIDEO_SERVER    = 'http://192.168.2.240:8080';
-    const TOTAL_VIDEOS    = 21;        // VIDEO1.mp4 … VIDEO21.mp4
-    // ───────────────────────────────────────────────
-
-    // Elegir número aleatorio entre 1 y TOTAL_VIDEOS
-    const num = Math.floor(Math.random() * TOTAL_VIDEOS) + 1;
-    document.getElementById('video-src').src = VIDEO_SERVER + '/VIDEO' + num + '.mp4';
-
-    const videoEl = document.getElementById('promo-video');
-    videoEl.load();
-
-    // ── Bloquear teclado (barra espaciadora, flechas, etc.) ──
-    document.addEventListener('keydown', e => e.preventDefault());
-
-    // ── Bloquear clic derecho ──
-    document.addEventListener('contextmenu', e => e.preventDefault());
-
-    // ── Barra de progreso (solo informativa) ──
-    function formatTime(s) {
-      const m = Math.floor(s / 60);
-      const ss = Math.floor(s % 60).toString().padStart(2, '0');
-      return m + ':' + ss;
+    // Leemos la variable de MikroTik como si fuera texto de JavaScript para evitar errores en el editor
+    var isPopup = "$(popup)";
+    
+    // Mostrar el popup de status de MikroTik si está configurado en el router
+    if (isPopup === 'true') {
+      open('$(link-status)', 'hotspot_status', 'toolbar=0,location=0,directories=0,status=0,menubars=0,resizable=1,width=290');
     }
 
-    videoEl.addEventListener('timeupdate', () => {
-      if (!videoEl.duration) return;
-      const pct = (videoEl.currentTime / videoEl.duration) * 100;
-      document.getElementById('progress-fill').style.width = pct + '%';
-      document.getElementById('time-label').textContent =
-        formatTime(videoEl.currentTime) + ' / ' + formatTime(videoEl.duration);
-    });
-
-    // ── Al terminar el video → redirigir ──
-    videoEl.addEventListener('ended', conectar);
-
-    // ── Si el video falla al cargar → redirigir igual ──
-    videoEl.addEventListener('error', conectar);
-
-    function conectar() {
-      document.getElementById('video-screen').style.display = 'none';
-      document.getElementById('connect-screen').classList.add('visible');
-
-      $(if popup == 'true')
-      open('$(link-status)', 'hotspot_status',
-           'toolbar=0,location=0,directories=0,status=0,menubars=0,resizable=1,width=290');
-      $(endif)
-
-      setTimeout(() => { location.href = '$(link-redirect)'; }, 1500);
-    }
+    // Redirigir a la página web final (la que el usuario quería visitar) en 1.5 segundos
+    setTimeout(() => { location.href = '$(link-redirect)'; }, 1500);
   </script>
 </body>
 </html>
