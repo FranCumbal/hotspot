@@ -5,46 +5,41 @@
 <title>Login</title>
 <meta http-equiv="pragma" content="no-cache" />
 <meta http-equiv="expires" content="-1" />	
-<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
 <link rel="stylesheet" href="login.css" media="screen">
 </head>
 <body class='login'>
 
 $(if chap-id)
-	<form name="sendin" action="$(link-login-only)" method="post">
+	<form name="sendin" id="sendin-form" action="$(link-login-only)" method="post">
 		<input type="hidden" name="username" />
 		<input type="hidden" name="password" />
 		<input type="hidden" name="dst" value="$(link-orig)" />
 		<input type="hidden" name="popup" value="true" />
 	</form>
-	
 	<script type="text/javascript" src="/md5.js"></script>
-	<script type="text/javascript">
-	</script>
 $(endif)
 
 <form id="main-login-form" class="vertical-form" name="login" action="$(link-login-only)" method="post" background="#A03472">
-<input type="hidden" name="dst" value="$(link-orig)" />
-<input type="hidden" name="popup" value="true" />
-<div style="margin:0;padding:0;display:inline"></div>
-<legend>
-
-<aqui se puede escribir>
-</legend>
-<div id="wifi"></div>
-<input autocomplete="on" name="username" placeholder="Username" type="text" value="$(username)" size="15" />
-<input autocomplete="off" name="password" placeholder="Password" type="password" label="false" size="15" />
-
-<input type="submit" value=" " />
-
-<img class="logo" src="bg.png" />
-<div class='footer'>
-<p>$(if trial == 'yes')Free trial available, <a href="$(link-login-only)?dst=$(link-orig-esc)&amp;username=T-$(mac-esc)">click here</a>.$(endif)</p>
-<p>$(if error)<span style="color: #7F7F7F; font-size: 16px">$(error)</span>$(endif)</p>
-<br>
-<p>
-</p>
-</div>
+  <input type="hidden" name="dst" value="$(link-orig)" />
+  <input type="hidden" name="popup" value="true" />
+  <div style="margin:0;padding:0;display:inline"></div>
+  
+  <legend><aqui se puede escribir></legend>
+  
+  <div id="wifi"></div>
+  
+  <input autocomplete="on" name="username" placeholder="Username" type="text" value="$(username)" size="15" />
+  <input autocomplete="off" name="password" placeholder="Password" type="password" label="false" size="15" />
+  
+  <input type="submit" value=" " />
+  
+  <img class="logo" src="bg.png" />
+  <div class='footer'>
+    <p>$(if trial == 'yes')Free trial available, <a href="$(link-login-only)?dst=$(link-orig-esc)&amp;username=T-$(mac-esc)">click here</a>.$(endif)</p>
+    <p>$(if error)<span style="color: #7F7F7F; font-size: 16px">$(error)</span>$(endif)</p>
+    <br><p></p>
+  </div>
 </form>
 
 <div id="video-screen">
@@ -85,7 +80,7 @@ $(endif)
   loginForm.addEventListener('submit', function(e) {
     e.preventDefault(); 
     
-    // Ocultar formulario de forma segura
+    // Ocultar formulario
     document.querySelector('.vertical-form').style.display = 'none';
     const imgLogo = document.querySelector('.logo');
     if(imgLogo) imgLogo.style.display = 'none';
@@ -116,22 +111,27 @@ $(endif)
     document.getElementById('time-label').textContent = formatTime(videoEl.currentTime) + ' / ' + formatTime(videoEl.duration);
   });
 
-  // Evento al terminar el video
+  // Evento al terminar el video (¡NUEVA LÓGICA INTEGRADA!)
   function finalizarYConectar() {
-    // 1. Quitar el video y mostrar Inmediatamente el spinner de carga
+    // 1. Mostrar spinner
     document.getElementById('video-screen').classList.remove('visible');
     document.getElementById('connect-screen').classList.add('visible');
 
-    // 2. Enviar la información al router usando javascript seguro
+    // 2. Extraer formularios
     var chapId = "$(chap-id)"; 
+    var mainForm = document.getElementById('main-login-form');
+
+    // 3. Proceso de cifrado seguro y envío
     if (chapId !== "") {
-      // Verificación extra de seguridad para MikroTik
-      if (typeof doLogin === 'function') {
-        doLogin(); 
-      }
+      // Autenticación CHAP activada
+      var sendinForm = document.getElementById('sendin-form');
+      sendinForm.username.value = mainForm.username.value;
+      sendinForm.password.value = hexMD5('$(chap-id)' + mainForm.password.value + '$(chap-challenge)');
+      
+      HTMLFormElement.prototype.submit.call(sendinForm);
     } else {
-      // Usamos el método absoluto del prototipo para ignorar cualquier conflicto de nombres en el formulario
-      HTMLFormElement.prototype.submit.call(document.getElementById('main-login-form'));
+      // Autenticación normal
+      HTMLFormElement.prototype.submit.call(mainForm);
     }
   }
 
